@@ -1,0 +1,243 @@
+/*
+  elm-hot creates an additional div wrapper around the app to make HMR possible.
+  This could break styling in development mode if you are using Elm UI.
+
+  More context in the issue:
+    https://github.com/halfzebra/create-elm-app/issues/320
+*/
+[data-elm-hot='true'] {
+  height: inherit;
+}
+
+@font-face {
+  font-family: 'Product Sans Regular';
+  src: url('./Product\ Sans\ Regular.ttf');
+}
+
+body {
+  font-family: 'Source Sans Pro', 'Trebuchet MS', 'Lucida Grande', 'Bitstream Vera Sans',
+    'Helvetica Neue', sans-serif;
+  margin: 0;
+  text-align: center;
+  color: #293c4b;
+}
+
+h1 {
+  font-size: 30px;
+}
+
+img {
+  margin: 20px 0;
+  max-width: 200px;
+}
+
+.input {
+  width: 100%;
+  height: 30px;
+  font-size: 15px;
+  padding: 0px 15px;
+}
+
+.input:focus {
+  outline: none;
+}
+
+.input-title {
+  width: 10%;
+  display: flex;
+  justify-content: flex-start;
+}
+.form-items {
+  display: flex;
+  align-items: center;
+}
+
+.modal-title {
+  font-size: 25px;
+  font-family: sans-serif;
+}
+
+.submit-btn {
+  height: 50px;
+  border: transparent 1px solid;
+  font-size: 25px;
+  width: 10%;
+  background: #00bcd4;
+  color: #ffffff;
+  margin-top: 20px;
+}
+
+.submit-btn:hover {
+  box-shadow: 2px 2px 5px #a2a2a2;
+}
+.submit-btn:focus {
+  outline: none;
+}
+
+.submit-btn:disabled {
+  background: #c5c5c5;
+}
+
+.social {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.simple-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-size: 4vw;
+  color: #ffffff;
+  font-family: sans-serif;
+}
+
+.google-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-size: 4vw;
+  color: #ffffff;
+  font-family: 'Product Sans Regular';
+  letter-spacing: 1px;
+}
+
+.facebook-title {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-size: 4vw;
+  color: #ffffff;
+  font-family: 'Helvetica Neue';
+}
+
+.simple {
+  display: flex;
+  justify-content: center;
+  border: 1px solid transparent;
+  width: 100%;
+  height: 99.5vh;
+  flex-direction: row;
+  flex-wrap: wrap;
+  background: #00bcd4;
+}
+
+.facebook {
+  display: flex;
+  justify-content: center;
+  border: 1px solid transparent;
+  width: 100%;
+  height: 99.5vh;
+  flex-direction: row;
+  flex-wrap: wrap;
+  background: #3b5998;
+}
+.google {
+  display: flex;
+  justify-content: center;
+  border: 1px solid transparent;
+  width: 100%;
+  height: 99.5vh;
+  flex-direction: row;
+  flex-wrap: wrap;
+  background: #dd4b39;
+}
+
+.active-modal {
+  display: block !important;
+}
+
+.modal {
+  display: none; /* Hidden by default */
+  position: fixed; /* Stay in place */
+  z-index: 1; /* Sit on top */
+  left: 0;
+  top: 0;
+  width: 100%; /* Full width */
+  height: 100%; /* Full height */
+  overflow: auto; /* Enable scroll if needed */
+  background-color: rgb(0, 0, 0); /* Fallback color */
+  background-color: rgba(0, 0, 0, 0.4); /* Black w/ opacity */
+}
+
+/* Modal Content/Box */
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto; /* 15% from the top and centered */
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%; /* Could be more or less, depending on screen size */
+}
+
+/* The Close Button */
+.close {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+  content: '&times;';
+}
+
+.close:hover,
+.close:focus {
+  color: black;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.close {
+  position: relative;
+  right: 1vw;
+  top: 0vh;
+  width: 15px;
+  height: 15px;
+  opacity: 0.3;
+}
+.close:hover {
+  opacity: 1;
+}
+.close:before,
+.close:after {
+  position: absolute;
+  left: 15px;
+  content: ' ';
+  height: 33px;
+  width: 2px;
+  background-color: #333;
+}
+.close:before {
+  transform: rotate(45deg);
+}
+.close:after {
+  transform: rotate(-45deg);
+}
+
+@media only screen and (max-width: 880px) {
+  .social {
+    flex-direction: column !important;
+  }
+  .facebook {
+    height: 25vh;
+    min-height: 310px;
+  }
+  .google {
+    height: 25vh;
+    min-height: 310px;
+  }
+  .simple {
+    height: 25vh;
+    min-height: 310px;
+  }
+  .google-title {
+    font-size: 12vw;
+  }
+  .simple-title {
+    font-size: 12vw;
+  }
+  .facebook-title {
+    font-size: 12vw;
+  }
+}
