@@ -5,7 +5,7 @@
   "repository": "git@github.com:Tarektouati/postgrest-auth-front.git",
   "scripts": {
     "start": "PORT=8080 elm-app start",
-    "build": "elm-app build"
+    "build": "elm make && elm-app build"
   },
   "dependencies": {
     "hellojs": "^2.0.0-4"
