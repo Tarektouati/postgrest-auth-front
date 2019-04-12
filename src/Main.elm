@@ -1,23 +1,29 @@
 module Main exposing (Model, Msg(..), init, main, update, view)
 
 import Browser
+import Browser.Navigation as Navigation exposing (Key)
 import Debug exposing (log, toString)
-import Html exposing (Html, button, div, form, h1, img, input, p, span, text)
-import Html.Attributes exposing (class, classList, disabled, placeholder, src, type_, value)
-import Html.Events exposing (onClick, onInput)
+import Encoder exposing (newUserEncoder, socialUserEncoder)
+import Html exposing (Html, button, div, form, h1, img, input, p, span, text, Attribute, node)
+import Html.Attributes exposing (class, classList, disabled, placeholder, src, type_, value )
+import Html.Events exposing (custom, onClick, onInput)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (map)
-
+import Types exposing (User, SocialUser)
+import Url exposing (Protocol(..), Url)
+import Ports exposing (login, token, Payload)
 
 
 ---- MODEL ----
 
 
-type alias User =
-    { id : String
-    , success : Bool
+type Provider = Google | Facebook
+
+type alias Flags =
+    { api : String
+    , state : String
     }
 
 
@@ -26,35 +32,44 @@ type alias Model =
     , email : String
     , password : String
     , rePassword : String
-    , savedData : User
+    , user : User
+    , googleUser : SocialUser
+    , endpoint : String
+    , state : String
+    , accessToken : String
+    , error : String
     }
 
 
-init : ( Model, Cmd Msg )
-init =
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     ( { myModal = False
       , email = ""
       , password = ""
       , rePassword = ""
-      , savedData = { success = False, id = "" }
+      , endpoint = flags.api
+      , state = flags.state
+      , accessToken = ""
+      , user = {  id = "" , success = False}
+      , googleUser = {id = "", email =""}
+      , error = ""
       }
     , Cmd.none
     )
 
 
-
 ---- UPDATE ----
 
 
-items : List Block
-items =
-    [ Facebook "facebook", Google "google", Simple "simple" ]
+blocks : List Block
+blocks =
+    [ FacebookBlock "facebook", GoogleBlock "google", SimpleBlock "simple" ]
 
 
 type Block
-    = Facebook String
-    | Google String
-    | Simple String
+    = FacebookBlock String
+    | GoogleBlock String
+    | SimpleBlock String
 
 
 type Msg
@@ -65,27 +80,22 @@ type Msg
     | RePassword String
     | SimpleLogin
     | LoginResult (Result Http.Error User)
+    | SocialResult (Result Http.Error SocialUser)
     | FacebookLogin
     | GoogleLogin
-    | Savedata User
+    | PGGoogleLogin
+    | PGFacebookLogin
+    | SaveUser User
+    | SaveSocialUser SocialUser
+    | SetToken( Maybe Payload)
 
 
-
---- simpleLogin: Model ->
-
-
-newUserEncoder : String -> String -> Encode.Value
-newUserEncoder email password =
-    Encode.object
-        [ ( "email", Encode.string email )
-        , ( "password", Encode.string password )
-        ]
 
 
 simpleLogin : Model -> Cmd Msg
 simpleLogin model =
     Http.post
-        { url = "http://localhost:3001/signup"
+        { url = model.endpoint ++ "/signup"
         , body = Http.jsonBody (newUserEncoder model.email model.password)
         , expect = Http.expectJson LoginResult decodeResponse
         }
@@ -94,18 +104,18 @@ simpleLogin model =
 facebookLogin : Model -> Cmd Msg
 facebookLogin model =
     Http.post
-        { url = "http://localhost:3001/provider/facebook"
-        , body = Http.jsonBody (newUserEncoder model.email model.password)
-        , expect = Http.expectJson LoginResult decodeResponse
+        { url = model.endpoint ++ "/provider/facebook"
+        , body = Http.jsonBody (socialUserEncoder model.state model.password)
+        , expect = Http.expectJson SocialResult decodeSocialResponse
         }
 
 
 googleLogin : Model -> Cmd Msg
 googleLogin model =
     Http.post
-        { url = "http://localhost:3001/provider/google"
-        , body = Http.jsonBody (newUserEncoder model.email model.password)
-        , expect = Http.expectJson LoginResult decodeResponse
+        { url = model.endpoint ++ "/provider/google"
+        , body = Http.jsonBody (socialUserEncoder model.state model.accessToken)
+        , expect = Http.expectJson SocialResult decodeSocialResponse
         }
 
 
@@ -115,12 +125,26 @@ resetForm model _ =
 
 
 savedResponse : User -> Model -> ( Model, Cmd Msg )
-savedResponse resp model =
+savedResponse user model =
     update
-        (Savedata
-            resp
+        (SaveUser
+            user
         )
         model
+
+savedSocialResponse : SocialUser -> Model -> ( Model, Cmd Msg )
+savedSocialResponse user model =
+    update
+        (SaveSocialUser
+            user
+        )
+        model        
+
+decodeSocialResponse : Decode.Decoder SocialUser
+decodeSocialResponse =
+    Decode.map2 SocialUser
+        (Decode.at [ "user","id" ] Decode.string)
+        (Decode.at [ "user", "email" ] Decode.string)
 
 
 decodeResponse : Decode.Decoder User
@@ -152,42 +176,97 @@ update msg model =
             ( model, simpleLogin model )
 
         FacebookLogin ->
-            ( model, facebookLogin model )
-
-        Savedata data ->
-            ( { model | savedData = data }, Cmd.none )
-
+            ( model, login "facebook" )
         GoogleLogin ->
-            ( model, googleLogin model )
+            --- TODOOOOO ----
+            ( model, login "google" )
 
+        SaveUser user ->
+            ( { model | user = user }, Cmd.none )
+
+        SaveSocialUser user ->
+            ( { model | googleUser = user }, Cmd.none )
+
+        PGGoogleLogin -> 
+             ( model, googleLogin model )
+        PGFacebookLogin -> 
+             ( model, facebookLogin model )
+    
+        SetToken response ->
+            case response of
+                Just payload  -> 
+                    model
+                        |> savedToken payload.token
+                        |> case payload.provider of
+                            Just "google" -> loginTo Google payload.token
+                            Just "facebook" -> loginTo Facebook payload.token
+                            Just _ -> loginTo Facebook payload.token
+                            Nothing -> loginTo Facebook payload.token
+
+                Nothing -> (model , Cmd.none)
+        SocialResult result -> 
+            case result of
+                Ok user ->
+                    user
+                        |> resetToken model
+                        |> savedSocialResponse user
+
+                Err err ->
+                {-- TODOOO handler error---}
+                   ( {model| error = (Debug.toString err)}, Cmd.none )
         LoginResult result ->
             case result of
-                Ok resp ->
-                    resp
+                Ok user ->
+                    user
                         |> resetForm model
-                        |> savedResponse resp
+                        |> savedResponse user
 
-                Err _ ->
-                    ( model, Cmd.none )
+                Err err ->
+                    
+                    ( {model| error = (Debug.toString err)}, Cmd.none )
 
+
+resetToken : Model -> SocialUser -> Model 
+resetToken model _  = { model | accessToken = "" }
+
+savedToken : String -> Model -> Model 
+savedToken token model =
+ { model | accessToken = token }
+
+loginTo : Provider -> String -> Model -> ( Model, Cmd Msg )
+loginTo provider _ model =
+    case provider of
+        Google ->  update (PGGoogleLogin) model
+        Facebook ->  update (PGFacebookLogin) model
 
 toDiv : Block -> Html Msg
 toDiv block =
     case block of
-        Facebook message ->
+        FacebookBlock message ->
             span [ class message, onClick FacebookLogin ]
                 [ h1 [ class (message ++ "-title") ] [ text message ]
                 ]
 
-        Google message ->
+        GoogleBlock message ->
             span [ class message, onClick GoogleLogin ]
                 [ h1 [ class (message ++ "-title") ] [ text message ]
                 ]
 
-        Simple message ->
+        SimpleBlock message ->
             span [ class message, onClick OpenModal ]
                 [ h1 [ class (message ++ "-title") ] [ text message ]
                 ]
+
+
+
+---- VIEW BUILDER ----
+
+
+verifyForm : Model -> Bool
+verifyForm model =
+    not (String.isEmpty model.password)
+        && (model.password == model.rePassword)
+        && not (String.isEmpty model.email)
 
 
 buildInput : String -> String -> String -> (String -> msg) -> Html msg
@@ -201,17 +280,18 @@ buildInput inputType palceHolder inputValue toMsg =
         ]
 
 
-verifyForm : Model -> Bool
-verifyForm model =
-    not (String.isEmpty model.password)
-        && (model.password == model.rePassword)
-        && not (String.isEmpty model.email)
+preventDefaultOpts : Msg -> Html.Attribute Msg
+preventDefaultOpts message =
+    custom
+        "submit"
+        (Decode.succeed { preventDefault = True, stopPropagation = False, message = message })
 
 
 myForm : Model -> Html Msg
 myForm model =
     div []
-        [ form []
+        [ form
+            [ preventDefaultOpts SimpleLogin ]
             [ buildInput "email" "Email" model.email Email
             , buildInput "password" "Password" model.password Password
             , buildInput "password" "Repeat password" model.rePassword RePassword
@@ -250,21 +330,30 @@ view model =
             [ class "social" ]
             (map
                 toDiv
-                items
+                blocks
             )
         , myModal model
         ]
 
 
 
+--- SUBS ------
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    token SetToken 
+
+
+
 ---- PROGRAM ----
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Browser.element
         { view = view
-        , init = \_ -> init
+        , init = init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }

@@ -61,7 +61,7 @@ img {
   height: 50px;
   border: transparent 1px solid;
   font-size: 25px;
-  width: 10%;
+  width: 30%;
   background: #00bcd4;
   color: #ffffff;
   margin-top: 20px;
@@ -213,6 +213,14 @@ img {
 }
 .close:after {
   transform: rotate(-45deg);
+}
+
+@media only screen and (max-width: 1220px) {
+  .form-items {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+  }
 }
 
 @media only screen and (max-width: 880px) {
