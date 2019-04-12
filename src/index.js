@@ -1,9 +1,9 @@
 import './assets/main.css';
 import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
-import HelloJs from 'hellojs';
+import hello from '../lib/hello';
 
-const hello = HelloJs.init({
+const socialLogin = hello.init({
   google: process.env.ELM_APP_GOOGLE_CLIENTID,
   facebook: process.env.ELM_APP_FACEBOOK_CLIENTID
 });
@@ -21,15 +21,13 @@ var app = Elm.Main.init({
   }
 });
 const login = provider => {
-  hello
-    .login(provider, helloOpts)
-    .then(async () => {
-      const res = await hello(provider).getAuthResponse();
-      app.ports.token.send({ token: res.access_token, provider: provider });
-    })
-    .catch(console.error);
+  socialLogin
+    .login(provider)
+    .then(({ authResponse }) =>
+      app.ports.token.send({ token: authResponse.access_token, provider: provider })
+    );
 };
 
-app.ports.login.subscribe(provider => login(provider));
+app.ports.login.subscribe(login);
 
 registerServiceWorker();

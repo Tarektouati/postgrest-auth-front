@@ -12,7 +12,6 @@ import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (map)
 import Types exposing (User, SocialUser)
-import Url exposing (Protocol(..), Url)
 import Ports exposing (login, token, Payload)
 
 
@@ -211,9 +210,9 @@ update msg model =
                         |> resetToken model
                         |> savedSocialResponse user
 
-                Err err ->
+                Err _ ->
                 {-- TODOOO handler error---}
-                   ( {model| error = (Debug.toString err)}, Cmd.none )
+                   ( {model| error = "Error"}, Cmd.none )
         LoginResult result ->
             case result of
                 Ok user ->
@@ -221,9 +220,9 @@ update msg model =
                         |> resetForm model
                         |> savedResponse user
 
-                Err err ->
+                Err _ ->
                     
-                    ( {model| error = (Debug.toString err)}, Cmd.none )
+                    ( {model| error = "Error"}, Cmd.none )
 
 
 resetToken : Model -> SocialUser -> Model 
