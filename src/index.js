@@ -22,7 +22,7 @@ var app = Elm.Main.init({
 });
 const login = provider => {
   socialLogin
-    .login(provider)
+    .login(provider, helloOpts)
     .then(({ authResponse }) =>
       app.ports.token.send({ token: authResponse.access_token, provider: provider })
     );
