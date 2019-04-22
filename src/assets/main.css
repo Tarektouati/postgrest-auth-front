@@ -215,6 +215,42 @@ img {
   transform: rotate(-45deg);
 }
 
+.error-view {
+  display: block;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 25vw;
+  background: #fb1717e6;
+  max-width: 350px;
+  height: 10vh;
+  max-height: 50px;
+}
+
+.error-close {
+  position: absolute;
+  top: 0;
+  padding: 3px;
+  font-size: 35px;
+  left: 5px;
+  color: #fff;
+  font-weight: lighter;
+}
+.error-close:after {
+  display: inline-block;
+  content: '\00d7';
+}
+
+.error-message {
+  display: flex;
+  align-content: center;
+  justify-content: center;
+  padding: 15px;
+  color: #fff;
+  font-family: sans-serif;
+  font-weight: bolder;
+}
+
 @media only screen and (max-width: 1220px) {
   .form-items {
     display: flex;

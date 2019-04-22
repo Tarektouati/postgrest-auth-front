@@ -4,21 +4,25 @@ import Browser
 import Browser.Navigation as Navigation exposing (Key)
 import Debug exposing (log, toString)
 import Encoder exposing (newUserEncoder, socialUserEncoder)
-import Html exposing (Html, button, div, form, h1, img, input, p, span, text, Attribute, node)
-import Html.Attributes exposing (class, classList, disabled, placeholder, src, type_, value )
+import Html exposing (Attribute, Html, button, div, form, h1, img, input, node, p, span, text)
+import Html.Attributes exposing (class, classList, disabled, placeholder, src, type_, value)
 import Html.Events exposing (custom, onClick, onInput)
 import Http
 import Json.Decode as Decode
 import Json.Encode as Encode
 import List exposing (map)
-import Types exposing (User, SocialUser)
-import Ports exposing (login, token, Payload)
+import Ports exposing (Payload, login, token)
+import Types exposing (SocialUser, User)
+
 
 
 ---- MODEL ----
 
 
-type Provider = Google | Facebook
+type Provider
+    = Google
+    | Facebook
+
 
 type alias Flags =
     { api : String
@@ -32,11 +36,11 @@ type alias Model =
     , password : String
     , rePassword : String
     , user : User
-    , googleUser : SocialUser
+    , socialUser : SocialUser
     , endpoint : String
     , state : String
     , accessToken : String
-    , error : String
+    , error : Maybe String
     }
 
 
@@ -49,12 +53,13 @@ init flags =
       , endpoint = flags.api
       , state = flags.state
       , accessToken = ""
-      , user = {  id = "" , success = False}
-      , googleUser = {id = "", email =""}
-      , error = ""
+      , user = { id = "", success = False }
+      , socialUser = { id = "", email = "" }
+      , error = Nothing
       }
     , Cmd.none
     )
+
 
 
 ---- UPDATE ----
@@ -86,9 +91,9 @@ type Msg
     | PGFacebookLogin
     | SaveUser User
     | SaveSocialUser SocialUser
-    | SetToken( Maybe Payload)
-
-
+    | SetToken (Maybe Payload)
+    | ShowError
+    | CloseError
 
 
 simpleLogin : Model -> Cmd Msg
@@ -131,18 +136,20 @@ savedResponse user model =
         )
         model
 
+
 savedSocialResponse : SocialUser -> Model -> ( Model, Cmd Msg )
 savedSocialResponse user model =
     update
         (SaveSocialUser
             user
         )
-        model        
+        model
+
 
 decodeSocialResponse : Decode.Decoder SocialUser
 decodeSocialResponse =
     Decode.map2 SocialUser
-        (Decode.at [ "user","id" ] Decode.string)
+        (Decode.at [ "user", "id" ] Decode.string)
         (Decode.at [ "user", "email" ] Decode.string)
 
 
@@ -176,34 +183,51 @@ update msg model =
 
         FacebookLogin ->
             ( model, login "facebook" )
+
         GoogleLogin ->
-            --- TODOOOOO ----
             ( model, login "google" )
 
         SaveUser user ->
             ( { model | user = user }, Cmd.none )
 
         SaveSocialUser user ->
-            ( { model | googleUser = user }, Cmd.none )
+            ( { model | socialUser = user }, Cmd.none )
 
-        PGGoogleLogin -> 
-             ( model, googleLogin model )
-        PGFacebookLogin -> 
-             ( model, facebookLogin model )
-    
+        PGGoogleLogin ->
+            ( model, googleLogin model )
+
+        PGFacebookLogin ->
+            ( model, facebookLogin model )
+
+        CloseError ->
+            ( { model | error = Nothing }, Cmd.none )
+
+        ShowError ->
+            ( model, Cmd.none )
+
         SetToken response ->
             case response of
-                Just payload  -> 
+                Just payload ->
                     model
                         |> savedToken payload.token
-                        |> case payload.provider of
-                            Just "google" -> loginTo Google payload.token
-                            Just "facebook" -> loginTo Facebook payload.token
-                            Just _ -> loginTo Facebook payload.token
-                            Nothing -> loginTo Facebook payload.token
+                        |> (case payload.provider of
+                                Just "google" ->
+                                    loginTo Google payload.token
 
-                Nothing -> (model , Cmd.none)
-        SocialResult result -> 
+                                Just "facebook" ->
+                                    loginTo Facebook payload.token
+
+                                Just _ ->
+                                    showError "Unable to login, retry again"
+
+                                Nothing ->
+                                    showError "Unable to login, retry again"
+                           )
+
+                Nothing ->
+                    ( model, Cmd.none )
+
+        SocialResult result ->
             case result of
                 Ok user ->
                     user
@@ -211,8 +235,8 @@ update msg model =
                         |> savedSocialResponse user
 
                 Err _ ->
-                {-- TODOOO handler error---}
-                   ( {model| error = "Error"}, Cmd.none )
+                    showError "Unable to login, retry again" model
+
         LoginResult result ->
             case result of
                 Ok user ->
@@ -221,22 +245,46 @@ update msg model =
                         |> savedResponse user
 
                 Err _ ->
-                    
-                    ( {model| error = "Error"}, Cmd.none )
+                    showError "Unable to login, retry again" model
 
 
-resetToken : Model -> SocialUser -> Model 
-resetToken model _  = { model | accessToken = "" }
+showError : String -> Model -> ( Model, Cmd Msg )
+showError errorMessage model =
+    { model | error = Just errorMessage } |> update ShowError
 
-savedToken : String -> Model -> Model 
+
+resetToken : Model -> SocialUser -> Model
+resetToken model _ =
+    { model | accessToken = "" }
+
+
+savedToken : String -> Model -> Model
 savedToken token model =
- { model | accessToken = token }
+    { model | accessToken = token }
+
 
 loginTo : Provider -> String -> Model -> ( Model, Cmd Msg )
 loginTo provider _ model =
     case provider of
-        Google ->  update (PGGoogleLogin) model
-        Facebook ->  update (PGFacebookLogin) model
+        Google ->
+            update PGGoogleLogin model
+
+        Facebook ->
+            update PGFacebookLogin model
+
+
+errorView : Maybe String -> Html Msg
+errorView message =
+    case message of
+        Just error ->
+            div [ class "error-view" ]
+                [ span [ class "error-message" ] [ text error ]
+                , span [ class "error-close", onClick CloseError ] []
+                ]
+
+        Nothing ->
+            div [] []
+
 
 toDiv : Block -> Html Msg
 toDiv block =
@@ -268,7 +316,7 @@ verifyForm model =
         && not (String.isEmpty model.email)
 
 
-buildInput : String -> String -> String -> (String -> msg) -> Html msg
+buildInput : String -> String -> String -> (String -> Msg) -> Html Msg
 buildInput inputType palceHolder inputValue toMsg =
     div [ class "form-items" ]
         [ p [ class "input-title" ]
@@ -325,7 +373,8 @@ myModal model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div
+        [ errorView model.error
+        , div
             [ class "social" ]
             (map
                 toDiv
@@ -341,7 +390,7 @@ view model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    token SetToken 
+    token SetToken
 
 
 
