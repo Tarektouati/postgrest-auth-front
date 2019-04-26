@@ -1,13 +1,14 @@
 module Encoder exposing (newUserEncoder, socialUserEncoder)
 
 import Json.Encode as E
+import UI.Form exposing (User)
 
 
-newUserEncoder : String -> String -> E.Value
-newUserEncoder email password =
+newUserEncoder : User -> E.Value
+newUserEncoder user =
     E.object
-        [ ( "email", E.string email )
-        , ( "password", E.string password )
+        [ ( "email", E.string user.email )
+        , ( "password", E.string user.password )
         ]
 
 
