@@ -1,17 +1,12 @@
-module Update exposing (Provider, update)
+module Update exposing (update)
 
 import Decoder exposing (decodeResponse, decodeSocialResponse)
 import Encoder exposing (newUserEncoder, socialUserEncoder)
 import Http
 import Message exposing (Msg(..))
 import Ports exposing (login, token)
-import Types exposing (Model, SocialUser, User)
+import Types exposing (Model, Provider(..), SocialUser, User)
 import UI.Form exposing (resetUser, updateEmail, updatePassword, updateRePassword)
-
-
-type Provider
-    = Google
-    | Facebook
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )

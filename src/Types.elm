@@ -1,4 +1,4 @@
-module Types exposing (Flags, Model, Payload, SocialUser, User)
+module Types exposing (Flags, Model, Payload, Provider(..), SocialUser, User)
 
 import UI.Form as F
 
@@ -7,6 +7,11 @@ type alias User =
     { id : String
     , success : Bool
     }
+
+
+type Provider
+    = Google
+    | Facebook
 
 
 type alias Payload =
