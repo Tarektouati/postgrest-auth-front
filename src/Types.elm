@@ -1,4 +1,6 @@
-module Types exposing (SocialUser, User)
+module Types exposing (Flags, Model, Payload, Provider(..), SocialUser, User)
+
+import UI.Form as F
 
 
 type alias User =
@@ -7,7 +9,39 @@ type alias User =
     }
 
 
+type Provider
+    = Google
+    | Facebook
+
+
+type alias Payload =
+    { token : String
+    , provider : Maybe String
+    }
+
+
 type alias SocialUser =
     { id : String
     , email : String
+    }
+
+
+type alias Model =
+    { modal : Bool
+    , formUser : F.User
+    , email : String
+    , password : String
+    , rePassword : String
+    , user : User
+    , socialUser : SocialUser
+    , endpoint : String
+    , state : String
+    , accessToken : String
+    , error : Maybe String
+    }
+
+
+type alias Flags =
+    { api : String
+    , state : String
     }

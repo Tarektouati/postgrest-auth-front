@@ -1,15 +1,9 @@
-port module Ports exposing (Payload, login, token)
+port module Ports exposing (login, token)
 
-import Json.Encode as E
+import Types exposing (Payload)
 
 
 port login : String -> Cmd msg
-
-
-type alias Payload =
-    { token : String
-    , provider : Maybe String
-    }
 
 
 port token : (Maybe Payload -> msg) -> Sub msg
